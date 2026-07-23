@@ -13,11 +13,14 @@ machine, without re-deriving hard-won setup knowledge.
 bootstrap/   Install-Workbench.ps1 — idempotent machine provisioning + checks
 shell/       PowerShell 7 profile, Git Bash .bashrc, shared aliases
 git/         .gitconfig, global .gitignore
-scripts/     Reusable gates: secret scan, pre-publish, CodeRabbit + Snyk wrappers
-templates/   AGENTS.md, .coderabbit.yaml, Python/Docker/CI/dependabot/snyk starters
+scripts/     Reusable gates: secret scan, pre-publish, CodeRabbit + Snyk wrappers,
+             Context7 state scrub, ASCII scan
+templates/   AGENTS.md, .coderabbit.yaml, Python/Docker/CI/dependabot/snyk starters,
+             .gitattributes/.editorconfig/pre-commit/renovate starters
 tests/       Pester 5 suite (runs in CI on windows-latest)
 docs/        Runbooks + policies: new-machine, restore-after-wipe, secrets,
-             coderabbit, snyk, pre-publish gate
+             coderabbit, snyk, pre-publish gate, context7 state scrub,
+             openbao cutover
 ```
 
 ## Quickstart (new machine)
@@ -126,6 +129,45 @@ pwsh -File scripts\Invoke-SnykScan.ps1 -ProjectPath D:\Projects\some-repo
 pwsh -File scripts\Invoke-SnykScan.ps1 -ProjectPath . -SeverityThreshold critical -SkipContainer
 ```
 
+### scripts/Invoke-Context7StateScrub.ps1
+
+Audit or scrub Context7 API keys (`ctx7sk-...`) out of local Codex state —
+`.codex-global-state.json` (and its `.bak`) plus `rollout-*.jsonl`
+transcripts under `sessions/` and `archived_sessions/`. Audit (default)
+changes nothing; Scrub redacts keys in place
+(`[REDACTED_CONTEXT7_KEY:<fingerprint>]`) and re-verifies zero remaining
+occurrences. Key values are never printed or written anywhere — the JSON
+report carries counts and 12-character SHA-256 fingerprints only. Every
+target is validated before any is modified; writes are atomic and preserve
+BOM, line endings, timestamps, attributes, and ACLs; reparse points and
+UNC/device paths are rejected. Idempotent and fail-closed. Requires
+PowerShell 7 + ripgrep. See docs/context7-state-scrub.md.
+
+```powershell
+# Audit: report occurrences, change nothing
+pwsh -File scripts\Invoke-Context7StateScrub.ps1
+
+# Scrub, closing and relaunching the Codex GUI around the write
+pwsh -File scripts\Invoke-Context7StateScrub.ps1 -Mode Scrub -CloseAndRelaunchCodex
+```
+
+### scripts/Invoke-AsciiScan.ps1
+
+Standalone optional ASCII gate: exits 1 when any scanned source file
+contains non-ASCII characters (smart quotes, mojibake), listing the
+offending lines. Byte-exact detection (Latin-1 read, same semantics as
+`grep -P '[^\x00-\x7F]'`). Read-only and idempotent. Deliberately NOT part
+of the pre-publish gate — call it directly or from CI for codebases that
+should stay pure ASCII.
+
+```powershell
+# Defaults: scans ./src for *.ts
+pwsh -File scripts\Invoke-AsciiScan.ps1
+
+# Explicit directories and extensions
+pwsh -File scripts\Invoke-AsciiScan.ps1 -Path src, scripts -Extensions ts, ps1
+```
+
 ## Quick reference
 
 | Tool | Path | Purpose | Key flags |
@@ -135,6 +177,8 @@ pwsh -File scripts\Invoke-SnykScan.ps1 -ProjectPath . -SeverityThreshold critica
 | Pre-publish gate | `scripts/Invoke-PrePublishGate.ps1` | secret scan → lint → tests → docker build | `-SkipDocker`, `-SkipTests`, `-WithSnyk`, `-WithCodeRabbit` |
 | CodeRabbit review | `scripts/Invoke-CodeRabbitReview.ps1` | Invoke central runner on uncommitted changes | `-TaskId`, `-Runner` |
 | Snyk scan | `scripts/Invoke-SnykScan.ps1` | deps + SAST + container vulns, fail-closed | `-SeverityThreshold`, `-SkipCode`, `-SkipContainer` |
+| Context7 state scrub | `scripts/Invoke-Context7StateScrub.ps1` | Audit/Scrub ctx7sk keys in Codex state; fingerprints only | `-Mode`, `-CodexHome`, `-CloseAndRelaunchCodex` |
+| ASCII scan | `scripts/Invoke-AsciiScan.ps1` | Standalone gate: exit 1 on non-ASCII in source files | `-Path`, `-Extensions` |
 
 ## Adopting workbench in a new project
 
@@ -143,6 +187,10 @@ pwsh -File scripts\Invoke-SnykScan.ps1 -ProjectPath . -SeverityThreshold critica
    - `templates/Dockerfile.python-uv` → `Dockerfile` (Python/uv projects)
    - `templates/github/ci.yml` → `.github/workflows/ci.yml`
    - `templates/github/dependabot.yml` → `.github/dependabot.yml`
+   - `templates/.gitattributes` → repo root (LF default, CRLF for Windows scripts)
+   - `templates/.editorconfig` → repo root (indent/charset/final-newline rules)
+   - `templates/.pre-commit-config.yaml` → repo root (gitleaks + whitespace hygiene)
+   - `templates/renovate.json` → repo root (automerge minor/patch, major-bump gate)
    - `.secret-scan-allow` → repo root (false-positive allowlist for the scan)
 2. **Call the gates from the project's own automation** instead of copying
    them — reference workbench by path so fixes propagate:
