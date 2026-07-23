@@ -17,7 +17,7 @@ overrides.
 |-- shell/       # PowerShell 7 profile, Git Bash .bashrc
 |-- git/         # .gitconfig, .gitignore-global (installed to ~ by bootstrap)
 |-- scripts/     # Gates: secret scan, pre-publish, CodeRabbit + Snyk wrappers,
-|                # Context7 state scrub
+|                # Context7 state scrub, ASCII scan (standalone)
 |-- templates/   # AGENTS.md, Dockerfile.python-uv, .coderabbit.yaml, CI/dependabot/snyk,
 |                # .gitattributes/.editorconfig/pre-commit/renovate starters
 |-- tests/       # Pester 5 suite (scanner, gate step-selection, bootstrap -NoInstall,
@@ -39,6 +39,7 @@ overrides.
 | CodeRabbit reviews | `scripts/Invoke-CodeRabbitReview.ps1` | Thin wrapper; NEVER reimplement runner logic here. Flow + exit codes 0/2/3/4: `docs/coderabbit.md`. |
 | Snyk scanning | `scripts/Invoke-SnykScan.ps1` | deps + SAST + container from project layout; exit 0/1/2 fail-closed. `SNYK_TOKEN` user env var ONLY: `docs/snyk.md`. |
 | Context7 state scrub | `scripts/Invoke-Context7StateScrub.ps1` | Audit/Scrub ctx7sk keys in Codex state; fingerprints only, atomic writes, fail-closed. Requires pwsh 7 + rg: `docs/context7-state-scrub.md`. |
+| ASCII scan | `scripts/Invoke-AsciiScan.ps1` | Standalone optional gate (NOT in the pre-publish gate): exit 1 on non-ASCII in source files. Defaults `./src` + `ts`; `-Path`/`-Extensions` override. |
 | Tests | `tests/` | Pester 5.x; external tools shim-mocked. Wired into CI (windows-latest job). |
 | What a fresh machine needs | `docs/new-machine.md` | Ordered; each step unblocks later ones. |
 

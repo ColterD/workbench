@@ -51,3 +51,19 @@ Exit behavior:
 - Prerequisites are per-tool: snyk needs the CLI + `SNYK_TOKEN`
   (docs/snyk.md), CodeRabbit needs `.coderabbit.yaml` + `CODERABBIT_RUNNER`
   (docs/coderabbit.md). Missing prerequisites fail closed.
+
+## Standalone optional gate: ASCII scan
+
+`scripts/Invoke-AsciiScan.ps1` fails (exit 1) when any scanned source file
+contains non-ASCII characters (smart quotes, mojibake), listing the
+offending lines. It is deliberately NOT part of the pre-publish gate — most
+projects legitimately carry non-ASCII content somewhere — so run it
+directly or from CI when a codebase should stay pure ASCII:
+
+```powershell
+# Defaults: scans ./src for *.ts
+pwsh -File D:\Projects\workbench\scripts\Invoke-AsciiScan.ps1
+
+# Explicit directories and extensions
+pwsh -File D:\Projects\workbench\scripts\Invoke-AsciiScan.ps1 -Path src, scripts -Extensions ts, ps1
+```
