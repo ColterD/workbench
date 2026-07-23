@@ -51,13 +51,20 @@ pwsh -ExecutionPolicy Bypass -File bootstrap\Install-Workbench.ps1 -NoInstall
 
 ### scripts/Invoke-SecretScan.ps1
 
-Pattern-based secret scan for a project directory. Covers tracked files and
-untracked-non-ignored files (git-aware), or the whole tree outside a repo.
-Exits 1 on any hit. Allowlist false positives with a literal value per line in
-`<root>\.secret-scan-allow`. Run it before every commit.
+Pattern-based secret scan for a project directory: generic credential
+assignments, GitHub/OpenAI/Anthropic/GitLab/Slack/npm/PyPI tokens, AWS access
+key IDs, JWTs, Snyk UATs, private-key blocks, and Bearer values. Covers
+tracked files and untracked-non-ignored files (git-aware), or the whole tree
+outside a repo. Exits 1 on any hit. Allowlist false positives with a literal
+value per line in `<root>\.secret-scan-allow` (`#` comments supported; see
+docs/secrets-policy.md). Run it before every commit.
 
 ```powershell
+# Full scan
 pwsh -File scripts\Invoke-SecretScan.ps1 -Path D:\Projects\some-repo
+
+# Pre-commit: scan only staged blobs (content comes from the git index)
+pwsh -File scripts\Invoke-SecretScan.ps1 -Path . -Staged
 ```
 
 ### scripts/Invoke-PrePublishGate.ps1
@@ -95,7 +102,7 @@ pwsh -File scripts\Invoke-CodeRabbitReview.ps1 -Repository . -TaskId "my-feature
 | Tool | Path | Purpose | Key flags |
 | --- | --- | --- | --- |
 | Bootstrap | `bootstrap/Install-Workbench.ps1` | Provision/verify machine; install profiles + git config | `-NoInstall` (check only) |
-| Secret scan | `scripts/Invoke-SecretScan.ps1` | Regex secret scan, allowlist via `.secret-scan-allow` | `-Path` (required) |
+| Secret scan | `scripts/Invoke-SecretScan.ps1` | Regex secret scan, allowlist via `.secret-scan-allow` | `-Path` (required), `-Staged` |
 | Pre-publish gate | `scripts/Invoke-PrePublishGate.ps1` | secret scan → lint → tests → docker build | `-SkipDocker`, `-SkipTests` |
 | CodeRabbit review | `scripts/Invoke-CodeRabbitReview.ps1` | Invoke central runner on uncommitted changes | `-TaskId`, `-Runner` |
 
@@ -106,6 +113,7 @@ pwsh -File scripts\Invoke-CodeRabbitReview.ps1 -Repository . -TaskId "my-feature
    - `templates/Dockerfile.python-uv` → `Dockerfile` (Python/uv projects)
    - `templates/github/ci.yml` → `.github/workflows/ci.yml`
    - `templates/github/dependabot.yml` → `.github/dependabot.yml`
+   - `.secret-scan-allow` → repo root (false-positive allowlist for the scan)
 2. **Call the gates from the project's own automation** instead of copying
    them — reference workbench by path so fixes propagate:
    ```powershell
