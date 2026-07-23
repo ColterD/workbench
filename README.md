@@ -72,7 +72,10 @@ pwsh -File scripts\Invoke-SecretScan.ps1 -Path . -Staged
 Generic pre-publish gate for a project: secret scan, then lint + tests (ruff +
 pytest via `uv` for Python, `npm test` for Node — skipped when the project has
 neither), then `docker build` when a Dockerfile exists and the Docker CLI is
-available. Exits nonzero on the first failed step.
+available. Exits nonzero on the first failed step. Opt-in steps: `-WithSnyk`
+inserts deps + SAST after tests; `-WithCodeRabbit` runs the central review
+last (exit 3 quota-deferral warns without failing). Recommended full order and
+exit behavior: docs/pre-publish-gate.md.
 
 ```powershell
 # Full gate
@@ -80,6 +83,9 @@ pwsh -File scripts\Invoke-PrePublishGate.ps1 -ProjectPath D:\Projects\some-repo
 
 # Skip the docker build and/or the test step
 pwsh -File scripts\Invoke-PrePublishGate.ps1 -ProjectPath . -SkipDocker -SkipTests
+
+# Everything: secret scan -> lint -> tests -> snyk -> docker -> coderabbit
+pwsh -File scripts\Invoke-PrePublishGate.ps1 -ProjectPath . -WithSnyk -WithCodeRabbit
 ```
 
 ### scripts/Invoke-CodeRabbitReview.ps1
@@ -119,7 +125,7 @@ pwsh -File scripts\Invoke-SnykScan.ps1 -ProjectPath . -SeverityThreshold critica
 | --- | --- | --- | --- |
 | Bootstrap | `bootstrap/Install-Workbench.ps1` | Provision/verify machine; install profiles + git config | `-NoInstall` (check only) |
 | Secret scan | `scripts/Invoke-SecretScan.ps1` | Regex secret scan, allowlist via `.secret-scan-allow` | `-Path` (required), `-Staged` |
-| Pre-publish gate | `scripts/Invoke-PrePublishGate.ps1` | secret scan → lint → tests → docker build | `-SkipDocker`, `-SkipTests` |
+| Pre-publish gate | `scripts/Invoke-PrePublishGate.ps1` | secret scan → lint → tests → docker build | `-SkipDocker`, `-SkipTests`, `-WithSnyk`, `-WithCodeRabbit` |
 | CodeRabbit review | `scripts/Invoke-CodeRabbitReview.ps1` | Invoke central runner on uncommitted changes | `-TaskId`, `-Runner` |
 | Snyk scan | `scripts/Invoke-SnykScan.ps1` | deps + SAST + container vulns, fail-closed | `-SeverityThreshold`, `-SkipCode`, `-SkipContainer` |
 

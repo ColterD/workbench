@@ -2,16 +2,23 @@
 .SYNOPSIS
     Generic pre-publish gate for a project: lint, tests, docker build, secret
     scan. Skips whatever a project does not have. Exits nonzero on failure.
+    Opt-in extras: -WithSnyk (deps + SAST) and -WithCodeRabbit (final review).
+    Recommended full order: secret scan -> lint -> tests -> snyk -> docker
+    build -> coderabbit. See docs/pre-publish-gate.md.
 .EXAMPLE
     pwsh -File Invoke-PrePublishGate.ps1 -ProjectPath D:\Projects\screenarr
 .EXAMPLE
     pwsh -File Invoke-PrePublishGate.ps1 -ProjectPath . -SkipDocker
+.EXAMPLE
+    pwsh -File Invoke-PrePublishGate.ps1 -ProjectPath . -WithSnyk -WithCodeRabbit
 #>
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][string]$ProjectPath,
     [switch]$SkipDocker,
-    [switch]$SkipTests
+    [switch]$SkipTests,
+    [switch]$WithSnyk,
+    [switch]$WithCodeRabbit
 )
 
 $ErrorActionPreference = 'Stop'
@@ -41,12 +48,32 @@ try {
         Write-Host "==> no recognized project type; lint/tests skipped"
     }
 
+    if ($WithSnyk) {
+        # Deps + SAST only: the container scan needs a built image, and the
+        # docker build step comes after this one. Scan images directly via
+        # Invoke-SnykScan.ps1 when publishing containers.
+        Invoke-Step 'snyk scan' {
+            & (Join-Path $scriptDir 'Invoke-SnykScan.ps1') -ProjectPath $root -SkipContainer
+        }
+    }
+
     if ((Test-Path (Join-Path $root 'Dockerfile')) -and -not $SkipDocker) {
         if (Get-Command docker -ErrorAction SilentlyContinue) {
             $tag = "$(Split-Path -Leaf $root):local"
             Invoke-Step 'docker build' { docker build -t $tag . }
         } else {
             Write-Host "==> docker CLI unavailable; build skipped (install via bootstrap)"
+        }
+    }
+
+    if ($WithCodeRabbit) {
+        Write-Host "==> CodeRabbit review" -ForegroundColor Cyan
+        & (Join-Path $scriptDir 'Invoke-CodeRabbitReview.ps1') -Repository $root
+        $reviewCode = $LASTEXITCODE
+        switch ($reviewCode) {
+            0 { }
+            3 { Write-Host "==> CodeRabbit deferred by quota/replay policy; gate continues" -ForegroundColor Yellow }
+            default { throw "CodeRabbit review failed the gate with exit code $reviewCode (see docs/coderabbit.md)" }
         }
     }
 
