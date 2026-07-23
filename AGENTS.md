@@ -16,9 +16,12 @@ overrides.
 |-- bootstrap/   # Install-Workbench.ps1 — idempotent provisioning + checklist
 |-- shell/       # PowerShell 7 profile, Git Bash .bashrc
 |-- git/         # .gitconfig, .gitignore-global (installed to ~ by bootstrap)
-|-- scripts/     # Gates: secret scan, pre-publish, CodeRabbit wrapper
-|-- templates/   # AGENTS.md, Dockerfile.python-uv, CI, dependabot starters
-|-- docs/        # new-machine.md, restore-after-wipe.md, secrets-policy.md
+|-- scripts/     # Gates: secret scan, pre-publish, CodeRabbit + Snyk wrappers
+|-- templates/   # AGENTS.md, Dockerfile.python-uv, .coderabbit.yaml, CI/dependabot/snyk starters
+|-- tests/       # Pester 5 suite (scanner, gate step-selection, bootstrap -NoInstall)
+|-- docs/        # Runbooks + policies: new-machine, restore-after-wipe,
+|                # secrets-policy, coderabbit, snyk, pre-publish-gate
+|-- .secret-scan-allow  # Allowlist example (synthetic entries only)
 `-- AGENTS.md
 ```
 
@@ -26,10 +29,12 @@ overrides.
 
 | Task | Location | Notes |
 | --- | --- | --- |
-| Machine provisioning | `bootstrap/Install-Workbench.ps1` | Ends with pass/fix/manual/fail checklist; exit 1 on any FAIL. |
-| Secret scanning | `scripts/Invoke-SecretScan.ps1` | Regex patterns + `.secret-scan-allow` literal allowlist. |
-| Pre-publish gate | `scripts/Invoke-PrePublishGate.ps1` | Secret scan → ruff+pytest via `uv run --with` → docker build. |
-| CodeRabbit reviews | `scripts/Invoke-CodeRabbitReview.ps1` | Thin wrapper; NEVER reimplement runner logic here. |
+| Machine provisioning | `bootstrap/Install-Workbench.ps1` | Ends with pass/fix/manual/fail checklist; exit 1 on any FAIL. `-NoInstall` is check-only and never writes state. |
+| Secret scanning | `scripts/Invoke-SecretScan.ps1` | Named regex patterns + `.secret-scan-allow` literal allowlist (`#` comments ok). `-Staged` scans index blobs for pre-commit. |
+| Pre-publish gate | `scripts/Invoke-PrePublishGate.ps1` | secret scan → ruff+pytest via `uv run --with` → docker build. Opt-ins: `-WithSnyk`, `-WithCodeRabbit`. Order rationale: `docs/pre-publish-gate.md`. |
+| CodeRabbit reviews | `scripts/Invoke-CodeRabbitReview.ps1` | Thin wrapper; NEVER reimplement runner logic here. Flow + exit codes 0/2/3/4: `docs/coderabbit.md`. |
+| Snyk scanning | `scripts/Invoke-SnykScan.ps1` | deps + SAST + container from project layout; exit 0/1/2 fail-closed. `SNYK_TOKEN` user env var ONLY: `docs/snyk.md`. |
+| Tests | `tests/` | Pester 5.x; external tools shim-mocked. Wired into CI (windows-latest job). |
 | What a fresh machine needs | `docs/new-machine.md` | Ordered; each step unblocks later ones. |
 
 ## CONVENTIONS
@@ -65,6 +70,9 @@ overrides.
   `pwsh -Command` — trailing args get joined into the command and can EXECUTE
   the script. Embed the path inside the command string or use `-File` on a
   checker script.
+- Locals that differ from a parameter only by case: PowerShell variables are
+  case-insensitive, so `$staged = ...` rebinds a `[switch]$Staged` parameter
+  (and typed params throw on the cast). Rename the local.
 
 ## COMMANDS
 
@@ -72,8 +80,14 @@ overrides.
 # Syntax-check a script (from pwsh)
 [void][System.Management.Automation.Language.Parser]::ParseFile('<path>', [ref]$null, [ref]$errs)
 
-# Secret scan
+# Secret scan (add -Staged for pre-commit use)
 pwsh -File scripts/Invoke-SecretScan.ps1 -Path .
+
+# Pre-publish gate (full: add -WithSnyk -WithCodeRabbit)
+pwsh -File scripts/Invoke-PrePublishGate.ps1 -ProjectPath .
+
+# Test suite (Pester 5.x)
+Invoke-Pester -Path tests
 
 # Bootstrap (idempotent; -NoInstall for check-only dry run)
 pwsh -ExecutionPolicy Bypass -File bootstrap/Install-Workbench.ps1

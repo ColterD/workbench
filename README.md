@@ -13,9 +13,11 @@ machine, without re-deriving hard-won setup knowledge.
 bootstrap/   Install-Workbench.ps1 — idempotent machine provisioning + checks
 shell/       PowerShell 7 profile, Git Bash .bashrc, shared aliases
 git/         .gitconfig, global .gitignore
-scripts/     Reusable gates: pre-publish checks, secret scan, CodeRabbit wrapper
-templates/   AGENTS.md, Python/Docker/CI/dependabot starters for new projects
-docs/        New-machine runbook, restore-after-wipe checklist, secrets policy
+scripts/     Reusable gates: secret scan, pre-publish, CodeRabbit + Snyk wrappers
+templates/   AGENTS.md, .coderabbit.yaml, Python/Docker/CI/dependabot/snyk starters
+tests/       Pester 5 suite (runs in CI on windows-latest)
+docs/        Runbooks + policies: new-machine, restore-after-wipe, secrets,
+             coderabbit, snyk, pre-publish gate
 ```
 
 ## Quickstart (new machine)
