@@ -24,16 +24,23 @@ This repo is structured so it can never hold a secret. Keep it that way.
 
 `scripts/Invoke-SecretScan.ps1` pattern-matches, grouped:
 
-- **Generic/structural**: credential assignments (`api_key = "..."`),
-  private-key blocks, `Bearer` values, JWTs, credentials embedded in URIs
-  (the `user:password@host` form), kubeconfig `client-key-data`, Azure
-  `AccountKey=`, age secret keys
+- **Generic/structural**: credential assignments (`api_key = "..."`,
+  including `access_key`/`secret_key` labels) and their quoted-key
+  JSON/YAML form (`"api_token": "..."` — placeholder values and
+  env-var-NAME values are skipped), `Authorization:` header values
+  (Basic/Bearer/Digest/Negotiate/NTLM), `Cookie:`/`Set-Cookie:` header
+  values, private-key blocks, `Bearer` values, JWTs, credentials embedded
+  in URIs (the `user:password@host` form), kubeconfig `client-key-data`,
+  Azure `AccountKey=`, age secret keys
 - **Git platforms**: GitHub PATs (`ghp_`, `github_pat_`, `gho_`/`ghu_`/
   `ghs_`/`ghr_`), GitLab (`glpat-`, runner `glrt-`, CI job `glcbt-`)
 - **AI providers**: OpenAI (`sk-`, `sk-proj-`), Anthropic (`sk-ant-`),
-  Hugging Face (`hf_`), Groq (`gsk_`), Replicate (`r8_`)
-- **Cloud/infra**: AWS access key IDs (`AKIA...`), DigitalOcean, Docker Hub,
-  Supabase, PlanetScale, Neon, Doppler
+  other separator-bearing `sk-` keys (e.g. `sk-or-v1-...`), Hugging Face
+  (`hf_`), Groq (`gsk_`), Replicate (`r8_`)
+- **Cloud/infra**: AWS access key IDs (`AKIA...`), AWS presigned URL
+  parameters (`X-Amz-Signature=`, `X-Amz-Credential=`,
+  `X-Amz-Security-Token=`, `AWSAccessKeyId=`, `Signature=`), DigitalOcean,
+  Docker Hub, Supabase, PlanetScale, Neon, Doppler
 - **Payments**: Stripe (`sk_live_`/`rk_live_` + test variants), Square
 - **Package registries**: npm (`npm_`), PyPI (`pypi-`)
 - **Comms/webhooks**: Slack tokens and webhook URLs, Discord webhook URLs,
@@ -41,6 +48,8 @@ This repo is structured so it can never hold a secret. Keep it that way.
 - **SaaS**: Google API keys (`AIza...`), Google OAuth client secrets
   (`GOCSPX-`), Shopify, New Relic (`NRAK-`), Okta (`SSWS`), Linear, Notion,
   Figma, Airtable, Snyk UATs
+- **File-sharing links**: Mega.nz links with the decryption key in the
+  fragment (`/file/...#key`, `/folder/...#key`, `#F!...!key`)
 
 Hit output names the pattern so you can tell what it thinks it found.
 

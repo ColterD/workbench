@@ -56,14 +56,17 @@ pwsh -ExecutionPolicy Bypass -File bootstrap\Install-Workbench.ps1 -NoInstall
 
 ### scripts/Invoke-SecretScan.ps1
 
-Pattern-based secret scan for a project directory: 40+ named patterns covering
-generic credential assignments, GitHub/GitLab tokens, AI providers
-(OpenAI/Anthropic/Hugging Face/Groq/Replicate), cloud/infra (AWS, DigitalOcean,
+Pattern-based secret scan for a project directory: 50+ named patterns covering
+generic credential assignments (env-style and quoted-key JSON/YAML forms),
+Authorization and Cookie/Set-Cookie header values, GitHub/GitLab tokens, AI
+providers (OpenAI/Anthropic/other `sk-` keys/Hugging Face/Groq/Replicate),
+cloud/infra (AWS key IDs + presigned URL parameters, DigitalOcean,
 Docker Hub, Supabase, PlanetScale, Neon, Doppler, Azure, kubeconfig), payments
 (Stripe, Square), package registries (npm, PyPI), comms/webhooks (Slack,
-Discord, Telegram, SendGrid, Twilio), and SaaS (Google, Shopify, New Relic,
-Okta, Linear, Notion, Figma, Airtable, Snyk) — plus JWTs, private keys, Bearer
-values, and URI-embedded credentials. Full list: docs/secrets-policy.md.
+Discord, Telegram, SendGrid, Twilio), SaaS (Google, Shopify, New Relic,
+Okta, Linear, Notion, Figma, Airtable, Snyk), and Mega.nz link keys — plus
+JWTs, private keys, Bearer values, and URI-embedded credentials. Full list:
+docs/secrets-policy.md.
 Covers tracked files and untracked-non-ignored files (git-aware), or the whole
 tree outside a repo. Exits 1 on any hit. Allowlist false positives with a
 literal value per line in `<root>\.secret-scan-allow` (`#` comments supported).
