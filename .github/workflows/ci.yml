@@ -31,3 +31,18 @@ jobs:
           }
           if ($bad -gt 0) { exit 1 }
           Write-Host "all .ps1 files parse clean"
+
+  pester:
+    # Windows runner: bootstrap and the gate scripts are Windows-targeted,
+    # and the staged-mode scanner tests need real git behavior.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - name: Ensure Pester 5.x
+        shell: pwsh
+        run: Install-Module Pester -Scope CurrentUser -Force -SkipPublisherCheck -MinimumVersion 5.7.0 -MaximumVersion 5.99.99
+
+      - name: Run Pester suite
+        shell: pwsh
+        run: Invoke-Pester -Path ./tests -Output Detailed

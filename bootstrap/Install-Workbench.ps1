@@ -18,9 +18,12 @@ function Add-Result([string]$Name, [string]$Status, [string]$Detail) {
 }
 
 function Install-WithWinget([string]$Id, [string]$Name) {
-    if ($NoInstall) { Add-Result $Name 'MANUAL' "not installed; run: winget install $Id"; return $false }
+    # Tri-state: $true = installed this run, $false = install attempted and
+    # failed, $null = manual action needed (already recorded as MANUAL).
+    # -NoInstall is check-only: report MANUAL, never install, never FAIL.
+    if ($NoInstall) { Add-Result $Name 'MANUAL' "not installed; run: winget install $Id"; return $null }
     if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
-        Add-Result $Name 'MANUAL' "winget unavailable; install $Id by hand"; return $false
+        Add-Result $Name 'MANUAL' "winget unavailable; install $Id by hand"; return $null
     }
     winget install --id $Id --exact --silent --accept-source-agreements --accept-package-agreements
     return ($LASTEXITCODE -eq 0)
@@ -31,9 +34,11 @@ Write-Host "==> workbench bootstrap" -ForegroundColor Cyan
 # --- Git ---
 if (Get-Command git -ErrorAction SilentlyContinue) {
     Add-Result 'Git' 'PASS' (git --version)
-} elseif (Install-WithWinget 'Git.Git' 'Git') {
-    Add-Result 'Git' 'FIXED' 'installed via winget; restart shell for PATH'
-} else { Add-Result 'Git' 'FAIL' 'not installed' }
+} else {
+    $installResult = Install-WithWinget 'Git.Git' 'Git'
+    if ($true -eq $installResult) { Add-Result 'Git' 'FIXED' 'installed via winget; restart shell for PATH' }
+    elseif ($null -ne $installResult) { Add-Result 'Git' 'FAIL' 'not installed; winget install failed' }
+}
 
 # --- PowerShell 7 ---
 $pwshPath = Get-Command pwsh -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Source
@@ -42,22 +47,29 @@ if (-not $pwshPath) {
     if (Test-Path $candidate) { $pwshPath = $candidate }
 }
 if ($pwshPath) { Add-Result 'PowerShell 7' 'PASS' $pwshPath }
-elseif (Install-WithWinget 'Microsoft.PowerShell' 'PowerShell 7') { Add-Result 'PowerShell 7' 'FIXED' 'installed via winget' }
-else { Add-Result 'PowerShell 7' 'FAIL' 'not installed' }
+else {
+    $installResult = Install-WithWinget 'Microsoft.PowerShell' 'PowerShell 7'
+    if ($true -eq $installResult) { Add-Result 'PowerShell 7' 'FIXED' 'installed via winget' }
+    elseif ($null -ne $installResult) { Add-Result 'PowerShell 7' 'FAIL' 'not installed; winget install failed' }
+}
 
 # --- uv ---
 if (Get-Command uv -ErrorAction SilentlyContinue) {
     Add-Result 'uv' 'PASS' (uv --version)
-} elseif (Install-WithWinget 'astral-sh.uv' 'uv') {
-    Add-Result 'uv' 'FIXED' 'installed via winget; restart shell for PATH'
-} else { Add-Result 'uv' 'FAIL' 'not installed' }
+} else {
+    $installResult = Install-WithWinget 'astral-sh.uv' 'uv'
+    if ($true -eq $installResult) { Add-Result 'uv' 'FIXED' 'installed via winget; restart shell for PATH' }
+    elseif ($null -ne $installResult) { Add-Result 'uv' 'FAIL' 'not installed; winget install failed' }
+}
 
 # --- Snyk CLI (winget id Snyk.Snyk verified against the winget source) ---
 if (Get-Command snyk -ErrorAction SilentlyContinue) {
     Add-Result 'Snyk CLI' 'PASS' (snyk --version)
-} elseif (Install-WithWinget 'Snyk.Snyk' 'Snyk CLI') {
-    Add-Result 'Snyk CLI' 'FIXED' 'installed via winget; restart shell for PATH'
-} else { Add-Result 'Snyk CLI' 'FAIL' 'not installed' }
+} else {
+    $installResult = Install-WithWinget 'Snyk.Snyk' 'Snyk CLI'
+    if ($true -eq $installResult) { Add-Result 'Snyk CLI' 'FIXED' 'installed via winget; restart shell for PATH' }
+    elseif ($null -ne $installResult) { Add-Result 'Snyk CLI' 'FAIL' 'not installed; winget install failed' }
+}
 
 # --- Docker: daemon + CLI are separate concerns ---
 $daemonUp = [bool](Get-Process 'com.docker.backend', 'dockerd' -ErrorAction SilentlyContinue)
@@ -108,6 +120,10 @@ $envDefaults = @{
 foreach ($name in $envDefaults.Keys) {
     $current = [Environment]::GetEnvironmentVariable($name, 'User')
     if ([string]::IsNullOrWhiteSpace($current)) {
+        if ($NoInstall) {
+            Add-Result "env:$name" 'MANUAL' "not set; re-run without -NoInstall to apply the default"
+            continue
+        }
         [Environment]::SetEnvironmentVariable($name, $envDefaults[$name], 'User')
         Add-Result "env:$name" 'FIXED' "set to $($envDefaults[$name])"
     } else { Add-Result "env:$name" 'PASS' $current }
