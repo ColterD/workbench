@@ -98,6 +98,21 @@ pwsh -File scripts\Invoke-CodeRabbitReview.ps1 -Repository D:\Projects\some-repo
 pwsh -File scripts\Invoke-CodeRabbitReview.ps1 -Repository . -TaskId "my-feature-review"
 ```
 
+### scripts/Invoke-SnykScan.ps1
+
+Reusable Snyk gate: dependency scan when a manifest exists, SAST
+(`snyk code test`) by default, and a container scan when a Dockerfile exists
+(builds `<dirname>:local` via docker, or pass `-ContainerImage`). Fails at or
+above a configurable severity threshold (default `high`) and fails CLOSED on
+scan errors or misconfiguration. Reads `SNYK_TOKEN` from the process or
+user-level env var — never from a file, never echoed. Exit codes: 0 = clean,
+1 = findings, 2 = scan failed/misconfigured. See docs/snyk.md.
+
+```powershell
+pwsh -File scripts\Invoke-SnykScan.ps1 -ProjectPath D:\Projects\some-repo
+pwsh -File scripts\Invoke-SnykScan.ps1 -ProjectPath . -SeverityThreshold critical -SkipContainer
+```
+
 ## Quick reference
 
 | Tool | Path | Purpose | Key flags |
@@ -106,6 +121,7 @@ pwsh -File scripts\Invoke-CodeRabbitReview.ps1 -Repository . -TaskId "my-feature
 | Secret scan | `scripts/Invoke-SecretScan.ps1` | Regex secret scan, allowlist via `.secret-scan-allow` | `-Path` (required), `-Staged` |
 | Pre-publish gate | `scripts/Invoke-PrePublishGate.ps1` | secret scan → lint → tests → docker build | `-SkipDocker`, `-SkipTests` |
 | CodeRabbit review | `scripts/Invoke-CodeRabbitReview.ps1` | Invoke central runner on uncommitted changes | `-TaskId`, `-Runner` |
+| Snyk scan | `scripts/Invoke-SnykScan.ps1` | deps + SAST + container vulns, fail-closed | `-SeverityThreshold`, `-SkipCode`, `-SkipContainer` |
 
 ## Adopting workbench in a new project
 
@@ -125,7 +141,10 @@ pwsh -File scripts\Invoke-CodeRabbitReview.ps1 -Repository . -TaskId "my-feature
    repo root and committing it, then review via
    `Invoke-CodeRabbitReview.ps1`. The central runner is the only invocation
    owner; never call the CodeRabbit CLI directly. See docs/coderabbit.md.
-4. **Keep secrets out**: env var names only in tracked files; values in
+4. **Opt into Snyk** by setting `SNYK_TOKEN` as a user-level env var (CI:
+   repo secret + `templates/github/snyk.yml`), then gate with
+   `Invoke-SnykScan.ps1`. The token never goes in any file. See docs/snyk.md.
+5. **Keep secrets out**: env var names only in tracked files; values in
    user-level env vars or untracked local files. See docs/secrets-policy.md.
 
 ## Rules

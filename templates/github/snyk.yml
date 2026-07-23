@@ -1,0 +1,50 @@
+# Snyk CI snippet (workbench template)
+#
+# Copy into .github/workflows/snyk.yml of the adopting repo (or merge the
+# steps into an existing workflow).
+#
+# Setup:
+#   Repo → Settings → Secrets and variables → Actions → New repository secret
+#   Name: SNYK_TOKEN   Value: <token from snyk.io → Account Settings>
+#
+# Rules:
+# - The token appears ONLY as secrets.SNYK_TOKEN in env: blocks. Never echo
+#   it, never inline it, never pass it as a CLI argument.
+# - Action SHAs are pinned for supply-chain hardening; let dependabot keep
+#   them current (see templates/github/dependabot.yml).
+# - snyk exit codes: 0 clean, 1 findings at/above threshold, >=2 failure.
+#   The shell propagates them, so any of them fails the job (fail closed).
+
+name: snyk
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  snyk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - name: Install Snyk CLI
+        run: npm install -g snyk
+
+      - name: Dependency scan (snyk test)
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: snyk test --severity-threshold=high
+
+      - name: Code scan (snyk code test)
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: snyk code test --severity-threshold=high
+
+      # Container scan — uncomment when the repo ships a Dockerfile/image.
+      # - name: Build image
+      #   run: docker build -t app:ci .
+      # - name: Container scan (snyk container test)
+      #   env:
+      #     SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      #   run: snyk container test app:ci --file=Dockerfile --severity-threshold=high

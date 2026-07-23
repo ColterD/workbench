@@ -52,6 +52,13 @@ if (Get-Command uv -ErrorAction SilentlyContinue) {
     Add-Result 'uv' 'FIXED' 'installed via winget; restart shell for PATH'
 } else { Add-Result 'uv' 'FAIL' 'not installed' }
 
+# --- Snyk CLI (winget id Snyk.Snyk verified against the winget source) ---
+if (Get-Command snyk -ErrorAction SilentlyContinue) {
+    Add-Result 'Snyk CLI' 'PASS' (snyk --version)
+} elseif (Install-WithWinget 'Snyk.Snyk' 'Snyk CLI') {
+    Add-Result 'Snyk CLI' 'FIXED' 'installed via winget; restart shell for PATH'
+} else { Add-Result 'Snyk CLI' 'FAIL' 'not installed' }
+
 # --- Docker: daemon + CLI are separate concerns ---
 $daemonUp = [bool](Get-Process 'com.docker.backend', 'dockerd' -ErrorAction SilentlyContinue)
 Add-Result 'Docker daemon' ($(if ($daemonUp) { 'PASS' } else { 'MANUAL' })) `
@@ -105,6 +112,11 @@ foreach ($name in $envDefaults.Keys) {
         Add-Result "env:$name" 'FIXED' "set to $($envDefaults[$name])"
     } else { Add-Result "env:$name" 'PASS' $current }
 }
+
+# --- SNYK_TOKEN: a secret, so bootstrap only CHECKS presence, never sets it ---
+if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable('SNYK_TOKEN', 'User'))) {
+    Add-Result 'env:SNYK_TOKEN' 'MANUAL' 'set as user-level env var only; see docs/snyk.md'
+} else { Add-Result 'env:SNYK_TOKEN' 'PASS' 'user-level env var present' }
 
 # --- Shell profiles + git config (copy if different; back up existing once) ---
 $workbenchRoot = Split-Path -Parent $PSScriptRoot
