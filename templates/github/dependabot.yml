@@ -1,0 +1,17 @@
+version: 2
+updates:
+  # Keep Dockerfile base-image digests current.
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+  # Keep GitHub Actions pinned SHAs current.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+  # Keep locked Python deps current (adjust ecosystem to the project).
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"

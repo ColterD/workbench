@@ -1,0 +1,21 @@
+[user]
+	name = ColterD
+	email = 29168599+ColterD@users.noreply.github.com
+[init]
+	defaultBranch = main
+[core]
+	autocrlf = true
+	longpaths = true
+	excludesFile = ~/.gitignore-global
+[fetch]
+	prune = true
+[diff]
+	algorithm = histogram
+[merge]
+	conflictstyle = zdiff3
+[pull]
+	rebase = false
+[alias]
+	st = status --short --branch
+	last = log --oneline -15
+	gone = branch --list --format '%(refname:short) %(upstream:track)'
