@@ -26,9 +26,12 @@ pwsh -File D:\Projects\workbench\scripts\Invoke-CodeRabbitReview.ps1 -Repository
 
 ## Opting a repo in
 
-1. Copy `templates/.coderabbit.yaml` from this repo to the target repo's
-   root, adjust `path_filters` / `path_instructions`, and commit it.
-2. That's it. The wrapper requires the config at the repo root and passes it
+1. Check whether the repo ALREADY has a `.coderabbit.yaml`. If it does, keep
+   it — it is by definition more tuned than any starter. The template is only
+   for repos without one.
+2. Otherwise copy `templates/.coderabbit.yaml` from this repo to the target
+   repo's root, adjust `path_filters` / `path_instructions`, and commit it.
+3. That's it. The wrapper requires the config at the repo root and passes it
    to the runner; the runner requires that repo and config both resolve
    beneath `D:\Projects`.
 

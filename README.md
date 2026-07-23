@@ -150,10 +150,11 @@ pwsh -File scripts\Invoke-SnykScan.ps1 -ProjectPath . -SeverityThreshold critica
    pwsh -File D:\Projects\workbench\scripts\Invoke-SecretScan.ps1 -Path .
    pwsh -File D:\Projects\workbench\scripts\Invoke-PrePublishGate.ps1 -ProjectPath .
    ```
-3. **Opt into CodeRabbit** by copying `templates/.coderabbit.yaml` to the
-   repo root and committing it, then review via
-   `Invoke-CodeRabbitReview.ps1`. The central runner is the only invocation
-   owner; never call the CodeRabbit CLI directly. See docs/coderabbit.md.
+3. **Opt into CodeRabbit** — if the repo already has a `.coderabbit.yaml`,
+   keep it; otherwise copy `templates/.coderabbit.yaml` to the repo root and
+   commit it. Then review via `Invoke-CodeRabbitReview.ps1`. The central
+   runner is the only invocation owner; never call the CodeRabbit CLI
+   directly. See docs/coderabbit.md.
 4. **Opt into Snyk** by setting `SNYK_TOKEN` as a user-level env var (CI:
    repo secret + `templates/github/snyk.yml`), then gate with
    `Invoke-SnykScan.ps1`. The token never goes in any file. See docs/snyk.md.
