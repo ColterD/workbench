@@ -88,9 +88,10 @@ Thin wrapper around the central quota-aware CodeRabbit runner (private repo,
 located via the `CODERABBIT_RUNNER` env var). Reviews a repo's uncommitted
 changes; requires a `.coderabbit.yaml` in the target repo and PowerShell 7
 (relaunches itself under pwsh when invoked from 5.1). Exit codes: 0 = clean,
-2 = critical/major findings, 3 = deferred by quota/replay policy, anything
-else = review failed. Never reimplements runner logic — quota, replay, and CLI
-invocation live in the central runner only.
+2 = critical/major findings, 3 = deferred by quota/replay policy, 4 =
+validation/infra/CLI failure. Never reimplements runner logic — quota,
+replay, and CLI invocation live in the central runner only. Full flow:
+docs/coderabbit.md; starter config: templates/.coderabbit.yaml.
 
 ```powershell
 pwsh -File scripts\Invoke-CodeRabbitReview.ps1 -Repository D:\Projects\some-repo
@@ -120,9 +121,10 @@ pwsh -File scripts\Invoke-CodeRabbitReview.ps1 -Repository . -TaskId "my-feature
    pwsh -File D:\Projects\workbench\scripts\Invoke-SecretScan.ps1 -Path .
    pwsh -File D:\Projects\workbench\scripts\Invoke-PrePublishGate.ps1 -ProjectPath .
    ```
-3. **Opt into CodeRabbit** by adding a `.coderabbit.yaml` at the repo root,
-   then reviewing via `Invoke-CodeRabbitReview.ps1`. The central runner is the
-   only invocation owner; never call the CodeRabbit CLI directly.
+3. **Opt into CodeRabbit** by copying `templates/.coderabbit.yaml` to the
+   repo root and committing it, then review via
+   `Invoke-CodeRabbitReview.ps1`. The central runner is the only invocation
+   owner; never call the CodeRabbit CLI directly. See docs/coderabbit.md.
 4. **Keep secrets out**: env var names only in tracked files; values in
    user-level env vars or untracked local files. See docs/secrets-policy.md.
 

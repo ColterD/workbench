@@ -3,6 +3,9 @@
     Invoke the central quota-aware CodeRabbit runner for a repository's
     uncommitted changes. Requires PowerShell 7 (the runner has #requires 7.2)
     and a task identity (CODERABBIT_TASK_ID) for quota/replay accounting.
+    Exit codes: 0 = clean, 2 = critical/major findings, 3 = deferred by
+    quota/replay/lock guard, 4 = validation/infra/CLI failure (fail closed).
+    See docs/coderabbit.md.
 .EXAMPLE
     pwsh -File Invoke-CodeRabbitReview.ps1 -Repository D:\Projects\screenarr
 .EXAMPLE
