@@ -38,6 +38,20 @@ pwsh -File D:\Projects\workbench\scripts\Invoke-CodeRabbitReview.ps1 -Repository
 The config is hashed into the review fingerprint, so editing it intentionally
 triggers a fresh (non-replayed) review of the same diff.
 
+The central `.coderabbit.yaml` baseline lives in the private runner repo and
+stays canonical; `templates/.coderabbit.yaml` here is only the per-repo
+starter.
+
+## PR review lane
+
+Besides this local CLI lane, the private runner repo also has a pull-request
+review lane (`Invoke-CodeRabbitPullRequest.ps1`, in the same private repo as
+the central runner) that drives CodeRabbit through a PR lifecycle:
+Implementation → RequestReview → Poll → BeginFixes → Verify → Finalize.
+It is documented at `docs/pr-review-lane.md` in that repo. This lane is only
+referenced here — like the runner itself, it is never vendored or
+reimplemented in another repo.
+
 ## When to run
 
 - Before committing a coherent chunk of work (the wrapper reviews
