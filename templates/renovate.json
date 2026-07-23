@@ -1,0 +1,52 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests",
+    ":automergeMinor",
+    ":automergeDigest",
+    ":automergePatch"
+  ],
+  "labels": ["dependencies"],
+  "rangeStrategy": "bump",
+  "platformAutomerge": true,
+  "automergeType": "pr",
+  "schedule": ["before 6am on Monday"],
+  "packageRules": [
+    {
+      "description": "Auto-merge non-major dev dependency updates",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true
+    },
+    {
+      "description": "Auto-merge patch + minor, require review for major",
+      "matchUpdateTypes": ["patch", "minor"],
+      "automerge": true,
+      "stabilityDays": 3
+    },
+    {
+      "description": "Require manual review for major bumps",
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "labels": ["dependencies", "major-bump"]
+    },
+    {
+      "description": "Group Docker image updates",
+      "groupName": "docker images",
+      "matchDatasources": ["docker"]
+    }
+  ],
+  "docker": {
+    "enabled": true
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "automerge": true,
+    "schedule": ["before 6am on Monday"]
+  },
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security"]
+  }
+}

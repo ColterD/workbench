@@ -18,7 +18,8 @@ overrides.
 |-- git/         # .gitconfig, .gitignore-global (installed to ~ by bootstrap)
 |-- scripts/     # Gates: secret scan, pre-publish, CodeRabbit + Snyk wrappers,
 |                # Context7 state scrub
-|-- templates/   # AGENTS.md, Dockerfile.python-uv, .coderabbit.yaml, CI/dependabot/snyk starters
+|-- templates/   # AGENTS.md, Dockerfile.python-uv, .coderabbit.yaml, CI/dependabot/snyk,
+|                # .gitattributes/.editorconfig/pre-commit/renovate starters
 |-- tests/       # Pester 5 suite (scanner, gate step-selection, bootstrap -NoInstall,
 |                # Context7 state scrub)
 |-- docs/        # Runbooks + policies: new-machine, restore-after-wipe,
