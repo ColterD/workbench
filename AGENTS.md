@@ -16,11 +16,14 @@ overrides.
 |-- bootstrap/   # Install-Workbench.ps1 — idempotent provisioning + checklist
 |-- shell/       # PowerShell 7 profile, Git Bash .bashrc
 |-- git/         # .gitconfig, .gitignore-global (installed to ~ by bootstrap)
-|-- scripts/     # Gates: secret scan, pre-publish, CodeRabbit + Snyk wrappers
+|-- scripts/     # Gates: secret scan, pre-publish, CodeRabbit + Snyk wrappers,
+|                # Context7 state scrub
 |-- templates/   # AGENTS.md, Dockerfile.python-uv, .coderabbit.yaml, CI/dependabot/snyk starters
-|-- tests/       # Pester 5 suite (scanner, gate step-selection, bootstrap -NoInstall)
+|-- tests/       # Pester 5 suite (scanner, gate step-selection, bootstrap -NoInstall,
+|                # Context7 state scrub)
 |-- docs/        # Runbooks + policies: new-machine, restore-after-wipe,
-|                # secrets-policy, coderabbit, snyk, pre-publish-gate
+|                # secrets-policy, coderabbit, snyk, pre-publish-gate,
+|                # context7-state-scrub
 |-- .secret-scan-allow  # Allowlist example (synthetic entries only)
 `-- AGENTS.md
 ```
@@ -34,6 +37,7 @@ overrides.
 | Pre-publish gate | `scripts/Invoke-PrePublishGate.ps1` | secret scan → ruff+pytest via `uv run --with` → docker build. Opt-ins: `-WithSnyk`, `-WithCodeRabbit`. Order rationale: `docs/pre-publish-gate.md`. |
 | CodeRabbit reviews | `scripts/Invoke-CodeRabbitReview.ps1` | Thin wrapper; NEVER reimplement runner logic here. Flow + exit codes 0/2/3/4: `docs/coderabbit.md`. |
 | Snyk scanning | `scripts/Invoke-SnykScan.ps1` | deps + SAST + container from project layout; exit 0/1/2 fail-closed. `SNYK_TOKEN` user env var ONLY: `docs/snyk.md`. |
+| Context7 state scrub | `scripts/Invoke-Context7StateScrub.ps1` | Audit/Scrub ctx7sk keys in Codex state; fingerprints only, atomic writes, fail-closed. Requires pwsh 7 + rg: `docs/context7-state-scrub.md`. |
 | Tests | `tests/` | Pester 5.x; external tools shim-mocked. Wired into CI (windows-latest job). |
 | What a fresh machine needs | `docs/new-machine.md` | Ordered; each step unblocks later ones. |
 
