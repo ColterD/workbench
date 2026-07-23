@@ -1,0 +1,33 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      # Action SHAs pinned for supply-chain hardening;
+      # .github/dependabot.yml keeps them current.
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - name: Secret scan
+        shell: pwsh
+        run: ./scripts/Invoke-SecretScan.ps1 -Path .
+
+      - name: PowerShell syntax check
+        shell: pwsh
+        run: |
+          $bad = 0
+          Get-ChildItem -Recurse -Filter *.ps1 | ForEach-Object {
+            $errs = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$errs)
+            if ($errs.Count) {
+              $bad++
+              foreach ($e in $errs) { Write-Host "FAIL $($_.FullName): $($e.Message)" }
+            }
+          }
+          if ($bad -gt 0) { exit 1 }
+          Write-Host "all .ps1 files parse clean"
