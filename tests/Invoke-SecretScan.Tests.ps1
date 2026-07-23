@@ -92,6 +92,52 @@ Describe 'Invoke-SecretScan detection' {
     }
 }
 
+Describe 'Invoke-SecretScan generic assignment semantics' {
+    It 'detects a literal credential assignment' {
+        $dir = New-FixtureDir 'generic-hit' @{ 'app.py' = 'token = "' + ('z' * 20) + '"' + "`n" }
+        $r = Invoke-Scan $dir
+        $r.ExitCode | Should -Be 1
+        $r.Output | Should -Match 'generic-credential-assignment'
+    }
+
+    It 'does not hop across lines in env-style files' {
+        # SECRET= at end of line, next line is another variable name
+        $text = "SECRET=`nDASHBOARD_SESSION_SECRET=abc`n"
+        $dir = New-FixtureDir 'generic-multiline' @{ '.env.example' = $text }
+        $r = Invoke-Scan $dir
+        $r.ExitCode | Should -Be 0
+    }
+
+    It 'ignores attribute-chain references, not literals' -TestCases @(
+        @{ Label = 'self attribute';     Text = 'secret = self.dashboard_session_secret_value' }
+        @{ Label = 'settings attribute'; Text = 'token = settings.mediamanager_token_value' }
+        @{ Label = 'config attribute';   Text = 'password = config.database_password_value' }
+    ) {
+        param($Label, $Text)
+        $dir = New-FixtureDir "attr-$($Label -replace ' ','-')" @{ 'app.py' = "$Text`n" }
+        $r = Invoke-Scan $dir
+        $r.ExitCode | Should -Be 0
+    }
+
+    It 'ignores unquoted identifier/call references in code files' -TestCases @(
+        @{ Label = 'bare identifier';  Text = 'secret = dashboard_session_secret' }
+        @{ Label = 'function call';    Text = 'secret = resolve_dashboard_session_secret(settings, store)' }
+        @{ Label = 'camelCase var';    Text = 'apiKey = currentApiKeyValueHolder' }
+    ) {
+        param($Label, $Text)
+        $dir = New-FixtureDir "ident-$($Label -replace ' ','-')" @{ 'app.py' = "$Text`n" }
+        $r = Invoke-Scan $dir
+        $r.ExitCode | Should -Be 0
+    }
+
+    It 'still flags bare values in env files (identifier rule is code-only)' {
+        $dir = New-FixtureDir 'env-bare' @{ '.env' = 'SECRET=actualsecretvaluethatislonge' + "`n" }
+        $r = Invoke-Scan $dir
+        $r.ExitCode | Should -Be 1
+        $r.Output | Should -Match 'generic-credential-assignment'
+    }
+}
+
 Describe 'Invoke-SecretScan false-positive regression' {
     It 'ignores <Label>' -TestCases @(
         @{ Label = 'short sk- value';          Text = 'api key sk-abc123' }

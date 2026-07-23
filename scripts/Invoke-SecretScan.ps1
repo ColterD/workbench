@@ -28,7 +28,9 @@ $root = (Resolve-Path -LiteralPath $Path).Path
 # name -> regex; names make hit output self-explanatory
 $patterns = [ordered]@{
     # --- generic / structural ---
-    'generic-credential-assignment' = '(?i)(api[_-]?key|secret|password|passwd|token)\s*[=:]\s*["'']?[A-Za-z0-9._~+/=-]{16,}'
+    # [ \t]* (not \s*) so matches cannot hop across lines in env files;
+    # attribute chains (self.x, settings.x) are excluded via $patternExclusions
+    'generic-credential-assignment' = '(?i)(api[_-]?key|secret|password|passwd|token)[ \t]*[=:][ \t]*["'']?[A-Za-z0-9._~+/=-]{16,}'
     'private-key-block'             = '-----BEGIN [A-Z ]*PRIVATE KEY-----'
     'bearer-token'                  = '(?i)bearer\s+[A-Za-z0-9._~+/=-]{20,}'
     'jwt'                           = 'eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}'
@@ -92,9 +94,36 @@ if (Test-Path -LiteralPath $allowFile) {
     })
 }
 
+# Per-pattern exclusions: matches against these are never secrets. Kept narrow
+# and pattern-specific so exclusions cannot mask real hits elsewhere.
+$patternExclusions = @{
+    # attribute/identifier references, not literal values:
+    #   secret = self.dashboard_session_secret / token = settings.mediamanager_token
+    'generic-credential-assignment' = @('(self|cls|settings|config|conf|app|os|sys|this)\.[A-Za-z0-9_.]')
+}
+
+# In source code, an UNQUOTED bare identifier / call on the right-hand side is
+# a reference, not a literal:  secret = dashboard_session_secret
+#   secret = resolve_dashboard_session_secret(settings, store)
+# Real literals in code are quoted; env/data files stay strict (no exclusion).
+$codeExtensions = @('.py', '.js', '.jsx', '.ts', '.tsx', '.go', '.rs', '.java',
+    '.rb', '.cs', '.sh', '.bash', '.ps1', '.psm1', '.psd1', '.c', '.cpp', '.h',
+    '.hpp', '.kt', '.swift', '.php')
+
 function Test-Content([string]$Relative, [string]$Text, [Collections.Generic.List[string]]$Hits) {
+    $ext = [IO.Path]::GetExtension($Relative).ToLowerInvariant()
     foreach ($name in $patterns.Keys) {
         foreach ($match in [regex]::Matches($Text, $patterns[$name])) {
+            if ($name -eq 'generic-credential-assignment' -and
+                $codeExtensions -contains $ext -and
+                $match.Value -match '[=:][ \t]*[A-Za-z_][A-Za-z0-9_.]*$') { continue }
+            $excluded = $false
+            if ($patternExclusions.ContainsKey($name)) {
+                foreach ($exclusion in $patternExclusions[$name]) {
+                    if ($match.Value -match $exclusion) { $excluded = $true; break }
+                }
+            }
+            if ($excluded) { continue }
             $allowed = $false
             foreach ($allowedValue in $allowlist) {
                 if ($match.Value.Contains($allowedValue)) { $allowed = $true; break }
