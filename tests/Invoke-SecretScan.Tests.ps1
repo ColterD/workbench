@@ -92,6 +92,46 @@ Describe 'Invoke-SecretScan detection' {
     }
 }
 
+Describe 'Invoke-SecretScan mined pattern classes' {
+    # Full-line shapes for patterns that need more than "key = <value>"
+    It 'detects <Label>' -TestCases @(
+        @{ Label = 'authorization-header';       Line = 'Authorization: Basic ' + ('Q' * 20) }
+        @{ Label = 'authorization-header';       Line = 'Proxy-Authorization: Digest ' + ('d' * 24) }
+        @{ Label = 'cookie-header';              Line = 'Cookie: sessionid=' + ('c' * 32) }
+        @{ Label = 'cookie-header';              Line = 'Set-Cookie: sid=' + ('s' * 32) + '; HttpOnly' }
+        @{ Label = 'json-credential-assignment'; Line = '{"api_token": "' + ('j' * 24) + '"}' }
+        @{ Label = 'json-credential-assignment'; Line = '{"client_secret": "' + ('k' * 24) + '"}' }
+        @{ Label = 'generic-credential-assignment'; Line = 'access_key = "' + ('a' * 24) + '"' }
+        @{ Label = 'generic-credential-assignment'; Line = 'secret_key = "' + ('e' * 24) + '"' }
+        @{ Label = 'aws-presigned-url';          Line = 'https://s3.example.com/k?X-Amz-Signature=' + ('m' * 32) }
+        @{ Label = 'aws-presigned-url';          Line = 'https://s3.example.com/k?AWSAccessKeyId=' + ('o' * 20) + '&Signature=' + ('p' * 24) }
+        @{ Label = 'mega-nz-link';               Line = 'https://mega.nz/file/AbCdEf12#' + ('q' * 22) }
+        @{ Label = 'mega-nz-link';               Line = 'https://mega.nz/#F!AbCdEf12!' + ('r' * 22) }
+        @{ Label = 'generic-sk-key';             Line = 'sk-or-v1-' + ('t' * 28) }
+    ) {
+        param($Label, $Line)
+        $dir = New-FixtureDir "mined-$Label-$([guid]::NewGuid().ToString('N').Substring(0,8))" @{ 'fixture.txt' = "$Line`n" }
+        $r = Invoke-Scan $dir
+        $r.ExitCode | Should -Be 1
+        $r.Output | Should -Match $Label
+    }
+
+    It 'ignores <Label>' -TestCases @(
+        @{ Label = 'env-var-name json value';    Line = '{"api_key_vars": "OPENROUTER_API_KEY"}' }
+        @{ Label = 'placeholder json value';     Line = '{"api_token": "your-token-here-123456"}' }
+        @{ Label = 'scrubbed sk- reference';     Line = 'sk-or-v1-REMOVED-EXPOSED-KEY was rotated' }
+        @{ Label = 'ctx7sk synthetic fixture';   Line = 'ctx7sk-fixture-key-alpha-0123456789' }
+        @{ Label = 'plural cookies prose';       Line = 'cookies: chocolate-chip=deliciouslylong' }
+        @{ Label = 'short cookie value';         Line = 'Cookie: theme=dark' }
+        @{ Label = 'auth header without scheme'; Line = 'Authorization: ' + ('A' * 30) }
+    ) {
+        param($Label, $Line)
+        $dir = New-FixtureDir "minedfp-$($Label -replace ' ','-')" @{ 'notes.txt' = "$Line`n" }
+        $r = Invoke-Scan $dir
+        $r.ExitCode | Should -Be 0
+    }
+}
+
 Describe 'Invoke-SecretScan generic assignment semantics' {
     It 'detects a literal credential assignment' {
         $dir = New-FixtureDir 'generic-hit' @{ 'app.py' = 'token = "' + ('z' * 20) + '"' + "`n" }

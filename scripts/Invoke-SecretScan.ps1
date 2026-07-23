@@ -30,7 +30,13 @@ $patterns = [ordered]@{
     # --- generic / structural ---
     # [ \t]* (not \s*) so matches cannot hop across lines in env files;
     # attribute chains (self.x, settings.x) are excluded via $patternExclusions
-    'generic-credential-assignment' = '(?i)(api[_-]?key|secret|password|passwd|token)[ \t]*[=:][ \t]*["'']?[A-Za-z0-9._~+/=-]{16,}'
+    'generic-credential-assignment' = '(?i)(api[_-]?key|access[_-]?key|secret[_-]?key|secret|password|passwd|token)[ \t]*[=:][ \t]*["'']?[A-Za-z0-9._~+/=-]{16,}'
+    # quoted-key JSON/YAML form the pattern above cannot reach ("key": "value");
+    # lookaheads skip env-var-NAME values (SOME_API_KEY: all caps + underscore)
+    # and values starting with placeholder words (your-/change/example/...)
+    'json-credential-assignment'    = '(?i)"[A-Za-z0-9_.-]*(?:api[_-]?key|access[_-]?key|secret[_-]?key|client[_-]?secret|secret|password|passwd|token)[A-Za-z0-9_.-]*"[ \t]*:[ \t]*"(?!(?=[A-Za-z0-9_]*_)[A-Za-z0-9_]{16,}")(?!(?i:your|change|example|dummy|placeholder|xxxx|fake))[A-Za-z0-9._~+/=-]{16,}"'
+    'authorization-header'          = '(?i)(?:proxy-)?authorization[ \t]*:[ \t]*(?:basic|bearer|digest|negotiate|ntlm)[ \t]+[A-Za-z0-9._~+/=-]{8,}'
+    'cookie-header'                 = '(?i)\b(?:set-)?cookie[ \t]*:[ \t]*[^\s=;,]{1,64}=[A-Za-z0-9._~+/=-]{16,}'
     'private-key-block'             = '-----BEGIN [A-Z ]*PRIVATE KEY-----'
     'bearer-token'                  = '(?i)bearer\s+[A-Za-z0-9._~+/=-]{20,}'
     'jwt'                           = 'eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}'
@@ -49,11 +55,15 @@ $patterns = [ordered]@{
     'openai-api-key'                = 'sk-[A-Za-z0-9]{20,}'
     'openai-project-key'            = 'sk-proj-[A-Za-z0-9_-]{20,}'
     'anthropic-api-key'             = 'sk-ant-[A-Za-z0-9_-]{20,}'
+    # other sk- providers with separators (sk-or-v1-..., etc.); the lookaheads
+    # keep sk-ant-/sk-proj- and pure-alnum keys reported by their own patterns
+    'generic-sk-key'                = 'sk-(?!ant-|proj-)(?![A-Za-z0-9]{20,})[A-Za-z0-9][A-Za-z0-9._-]{18,}'
     'huggingface-token'             = 'hf_[A-Za-z0-9]{30,}'
     'groq-api-key'                  = 'gsk_[A-Za-z0-9]{20,}'
     'replicate-api-token'           = 'r8_[A-Za-z0-9]{20,}'
     # --- cloud / infra ---
     'aws-access-key-id'             = 'AKIA[0-9A-Z]{16}'
+    'aws-presigned-url'             = '[?&](?:X-Amz-Signature|X-Amz-Credential|X-Amz-Security-Token|AWSAccessKeyId|Signature)=[A-Za-z0-9%._~+/=-]{8,}'
     'digitalocean-pat'              = 'dop_v1_[a-f0-9]{64}'
     'docker-hub-pat'                = 'dckr_pat_[A-Za-z0-9_-]{20,}'
     'supabase-pat'                  = 'sbp_[a-f0-9]{40}'
@@ -84,6 +94,8 @@ $patterns = [ordered]@{
     'figma-token'                   = 'figd_[A-Za-z0-9_-]{20,}'
     'airtable-pat'                  = 'pat[A-Za-z0-9]{14}\.[0-9a-f]{64}'
     'snyk-uat'                      = 'snyk_uat\.[A-Za-z0-9._-]{20,}'
+    # --- file-sharing links (decryption key in the fragment) ---
+    'mega-nz-link'                  = '(?i)https?://mega\.nz/(?:(?:file|folder)/[A-Za-z0-9_-]{6,}#|#F![A-Za-z0-9_-]{6,}!)[A-Za-z0-9_-]{8,}'
 }
 
 $allowlist = @()
@@ -100,6 +112,8 @@ $patternExclusions = @{
     # attribute/identifier references, not literal values:
     #   secret = self.dashboard_session_secret / token = settings.mediamanager_token
     'generic-credential-assignment' = @('(self|cls|settings|config|conf|app|os|sys|this)\.[A-Za-z0-9_.]')
+    # scrubbed/doc references to sk- keys (fixture values, REMOVED-EXPOSED notes)
+    'generic-sk-key'                = @('(?i)(fixture|fake|example|dummy|removed|exposed|placeholder|your|xxxx)')
 }
 
 # In source code, an UNQUOTED bare identifier / call on the right-hand side is
