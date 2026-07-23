@@ -24,7 +24,7 @@ overrides.
 |                # Context7 state scrub)
 |-- docs/        # Runbooks + policies: new-machine, restore-after-wipe,
 |                # secrets-policy, coderabbit, snyk, pre-publish-gate,
-|                # context7-state-scrub
+|                # context7-state-scrub, openbao-cutover
 |-- .secret-scan-allow  # Allowlist example (synthetic entries only)
 `-- AGENTS.md
 ```
