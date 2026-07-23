@@ -41,15 +41,48 @@ BeforeAll {
 
 Describe 'Invoke-SecretScan detection' {
     It 'detects <Label>' -TestCases @(
-        @{ Label = 'aws-access-key-id';   Value = 'AKIA' + ('A1' * 8) }
-        @{ Label = 'anthropic-api-key';   Value = 'sk-ant-' + ('a' * 25) }
-        @{ Label = 'gitlab-pat';          Value = 'glpat-' + ('g' * 22) }
-        @{ Label = 'slack-token';         Value = 'xoxb-' + ('1' * 12) + '-test' }
-        @{ Label = 'npm-access-token';    Value = 'npm_' + ('n' * 36) }
-        @{ Label = 'pypi-api-token';      Value = 'pypi-' + ('p' * 30) }
-        @{ Label = 'jwt';                 Value = 'eyJ' + ('h' * 12) + '.' + ('p' * 12) + '.' + ('s' * 12) }
-        @{ Label = 'github-pat-classic';  Value = 'ghp_' + ('G' * 30) }
-        @{ Label = 'openai-api-key';      Value = 'sk-' + ('o' * 25) }
+        @{ Label = 'aws-access-key-id';          Value = 'AKIA' + ('A1' * 8) }
+        @{ Label = 'anthropic-api-key';          Value = 'sk-ant-' + ('a' * 25) }
+        @{ Label = 'gitlab-pat';                 Value = 'glpat-' + ('g' * 22) }
+        @{ Label = 'slack-token';                Value = 'xoxb-' + ('1' * 12) + '-test' }
+        @{ Label = 'npm-access-token';           Value = 'npm_' + ('n' * 36) }
+        @{ Label = 'pypi-api-token';             Value = 'pypi-' + ('p' * 30) }
+        @{ Label = 'jwt';                        Value = 'eyJ' + ('h' * 12) + '.' + ('p' * 12) + '.' + ('s' * 12) }
+        @{ Label = 'github-pat-classic';         Value = 'ghp_' + ('G' * 30) }
+        @{ Label = 'openai-api-key';             Value = 'sk-' + ('o' * 25) }
+        @{ Label = 'github-oauth-token';         Value = 'gho_' + ('O' * 30) }
+        @{ Label = 'gitlab-runner-token';        Value = 'glrt-' + ('r' * 22) }
+        @{ Label = 'gitlab-ci-job-token';        Value = 'glcbt-' + ('c' * 22) }
+        @{ Label = 'openai-project-key';         Value = 'sk-proj-' + ('P' * 25) }
+        @{ Label = 'stripe-key';                 Value = 'sk_live_' + ('S' * 24) }
+        @{ Label = 'google-api-key';             Value = 'AIza' + ('G' * 35) }
+        @{ Label = 'google-oauth-client-secret'; Value = 'GOCSPX-' + ('g' * 24) }
+        @{ Label = 'sendgrid-api-key';           Value = 'SG.' + ('s' * 20) + '.' + ('g' * 20) }
+        @{ Label = 'twilio-api-key';             Value = 'SK' + ('a1' * 16) }
+        @{ Label = 'digitalocean-pat';           Value = 'dop_v1_' + ('d' * 64) }
+        @{ Label = 'docker-hub-pat';             Value = 'dckr_pat_' + ('D' * 25) }
+        @{ Label = 'huggingface-token';          Value = 'hf_' + ('H' * 32) }
+        @{ Label = 'groq-api-key';               Value = 'gsk_' + ('G' * 24) }
+        @{ Label = 'replicate-api-token';        Value = 'r8_' + ('R' * 24) }
+        @{ Label = 'slack-webhook';              Value = 'https://hooks.slack.com/services/T' + ('A' * 9) + '/B' + ('B' * 9) + '/' + ('C' * 20) }
+        @{ Label = 'discord-webhook';            Value = 'https://discord.com/api/webhooks/' + ('1' * 18) + '/' + ('w' * 24) }
+        @{ Label = 'telegram-bot-token';         Value = ('7' * 9) + ':' + ('T' * 35) }
+        @{ Label = 'shopify-token';              Value = 'shpat_' + ('f' * 32) }
+        @{ Label = 'square-token';               Value = 'sq0atp-' + ('s' * 24) }
+        @{ Label = 'new-relic-api-key';          Value = 'NRAK-' + ('N' * 27) }
+        @{ Label = 'okta-ssws-token';            Value = 'SSWS ' + ('O' * 24) }
+        @{ Label = 'linear-api-key';             Value = 'lin_api_' + ('L' * 40) }
+        @{ Label = 'notion-token';               Value = 'ntn_' + ('N' * 24) }
+        @{ Label = 'figma-token';                Value = 'figd_' + ('F' * 24) }
+        @{ Label = 'airtable-pat';               Value = 'pat' + ('a' * 14) + '.' + ('b' * 64) }
+        @{ Label = 'age-secret-key';             Value = 'AGE-SECRET-KEY-1' + ('K' * 58) }
+        @{ Label = 'azure-storage-account-key';  Value = 'AccountKey=' + ('Z' * 44) }
+        @{ Label = 'uri-embedded-credentials';   Value = 'postgres://workbench:' + ('p' * 16) + '@db.internal:5432/app' }
+        @{ Label = 'kubeconfig-client-key';      Value = 'client-key-data: ' + ('Q' * 48) }
+        @{ Label = 'supabase-pat';               Value = 'sbp_' + ('5' * 40) }
+        @{ Label = 'planetscale-token';          Value = 'pscale_tkn_' + ('t' * 24) }
+        @{ Label = 'neon-api-key';               Value = 'napi_' + ('n' * 24) }
+        @{ Label = 'doppler-token';              Value = 'dp.st.prod.' + ('D' * 30) }
     ) {
         param($Label, $Value)
         $dir = New-FixtureDir "detect-$Label" @{ 'config.txt' = "key = $Value`n" }
@@ -68,6 +101,15 @@ Describe 'Invoke-SecretScan false-positive regression' {
         @{ Label = 'single-segment eyJ';       Text = 'prefix eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9 suffix' }
         @{ Label = 'short AKIA';               Text = 'AKIA123 too short' }
         @{ Label = 'placeholder assignment';   Text = 'api_key = YOUR_TOKEN_HERE' }
+        @{ Label = 'short sk-proj';            Text = 'sk-proj-abc123 is truncated' }
+        @{ Label = 'stripe public key';        Text = 'publishable pk_live_4eC39HqLyjWDarjtT1zdp7dc is safe' }
+        @{ Label = 'url without userinfo';     Text = 'postgres://db.internal:5432/app has no creds' }
+        @{ Label = 'plain https url';          Text = 'see https://example.com/some/path for details' }
+        @{ Label = 'short AIza';               Text = 'AIza123 is too short' }
+        @{ Label = 'incomplete slack hook';    Text = 'https://hooks.slack.com/services/T0000 only' }
+        @{ Label = 'short telegram';           Text = '12345678:tooshort' }
+        @{ Label = 'ssh public key';           Text = 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAB user@host' }
+        @{ Label = 'pat prose';                Text = 'patience is a virtue, pattern or not' }
     ) {
         param($Label, $Text)
         $dir = New-FixtureDir "fp-$($Label -replace ' ','-')" @{ 'notes.txt' = "$Text`n" }

@@ -22,13 +22,27 @@ This repo is structured so it can never hold a secret. Keep it that way.
 
 ## What the scanner catches
 
-`scripts/Invoke-SecretScan.ps1` pattern-matches: generic credential
-assignments (`api_key = "..."` and friends), GitHub PATs (`ghp_`,
-`github_pat_`), OpenAI (`sk-`) and Anthropic (`sk-ant-`) keys, AWS access key
-IDs (`AKIA...`), GitLab PATs (`glpat-`), Slack tokens (`xox[abpors]-`), npm
-(`npm_`) and PyPI (`pypi-`) tokens, JWTs, Snyk UATs, private-key blocks, and
-`Bearer` header values. Hit output names the pattern so you can tell what it
-thinks it found.
+`scripts/Invoke-SecretScan.ps1` pattern-matches, grouped:
+
+- **Generic/structural**: credential assignments (`api_key = "..."`),
+  private-key blocks, `Bearer` values, JWTs, credentials embedded in URIs
+  (the `user:password@host` form), kubeconfig `client-key-data`, Azure
+  `AccountKey=`, age secret keys
+- **Git platforms**: GitHub PATs (`ghp_`, `github_pat_`, `gho_`/`ghu_`/
+  `ghs_`/`ghr_`), GitLab (`glpat-`, runner `glrt-`, CI job `glcbt-`)
+- **AI providers**: OpenAI (`sk-`, `sk-proj-`), Anthropic (`sk-ant-`),
+  Hugging Face (`hf_`), Groq (`gsk_`), Replicate (`r8_`)
+- **Cloud/infra**: AWS access key IDs (`AKIA...`), DigitalOcean, Docker Hub,
+  Supabase, PlanetScale, Neon, Doppler
+- **Payments**: Stripe (`sk_live_`/`rk_live_` + test variants), Square
+- **Package registries**: npm (`npm_`), PyPI (`pypi-`)
+- **Comms/webhooks**: Slack tokens and webhook URLs, Discord webhook URLs,
+  Telegram bot tokens, SendGrid, Twilio
+- **SaaS**: Google API keys (`AIza...`), Google OAuth client secrets
+  (`GOCSPX-`), Shopify, New Relic (`NRAK-`), Okta (`SSWS`), Linear, Notion,
+  Figma, Airtable, Snyk UATs
+
+Hit output names the pattern so you can tell what it thinks it found.
 
 Two run modes:
 

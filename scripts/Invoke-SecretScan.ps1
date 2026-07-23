@@ -27,20 +27,61 @@ $root = (Resolve-Path -LiteralPath $Path).Path
 
 # name -> regex; names make hit output self-explanatory
 $patterns = [ordered]@{
+    # --- generic / structural ---
     'generic-credential-assignment' = '(?i)(api[_-]?key|secret|password|passwd|token)\s*[=:]\s*["'']?[A-Za-z0-9._~+/=-]{16,}'
-    'github-pat-classic'            = 'ghp_[A-Za-z0-9]{20,}'
-    'github-pat-finegrained'        = 'github_pat_[A-Za-z0-9_]{20,}'
-    'openai-api-key'                = 'sk-[A-Za-z0-9]{20,}'
-    'anthropic-api-key'             = 'sk-ant-[A-Za-z0-9_-]{20,}'
-    'aws-access-key-id'             = 'AKIA[0-9A-Z]{16}'
-    'gitlab-pat'                    = 'glpat-[A-Za-z0-9_-]{20,}'
-    'slack-token'                   = 'xox[abpors]-[A-Za-z0-9-]{10,}'
-    'npm-access-token'              = 'npm_[A-Za-z0-9]{36}'
-    'pypi-api-token'                = 'pypi-[A-Za-z0-9_-]{20,}'
-    'jwt'                           = 'eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}'
-    'snyk-uat'                      = 'snyk_uat\.[A-Za-z0-9._-]{20,}'
     'private-key-block'             = '-----BEGIN [A-Z ]*PRIVATE KEY-----'
     'bearer-token'                  = '(?i)bearer\s+[A-Za-z0-9._~+/=-]{20,}'
+    'jwt'                           = 'eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}'
+    'uri-embedded-credentials'      = '[a-z][a-z0-9+.-]{2,}://[^/\s:@]{1,64}:[^/\s@]{3,}@'
+    'kubeconfig-client-key'         = 'client-key-data:\s*[A-Za-z0-9+/=]{40,}'
+    'azure-storage-account-key'     = '(?i)AccountKey=[A-Za-z0-9+/=]{40,}'
+    'age-secret-key'                = 'AGE-SECRET-KEY-1[A-Z0-9]{58}'
+    # --- git platforms ---
+    'github-pat-classic'            = 'ghp_[A-Za-z0-9]{20,}'
+    'github-pat-finegrained'        = 'github_pat_[A-Za-z0-9_]{20,}'
+    'github-oauth-token'            = 'gh[ousr]_[A-Za-z0-9]{20,}'
+    'gitlab-pat'                    = 'glpat-[A-Za-z0-9_-]{20,}'
+    'gitlab-runner-token'           = 'glrt-[A-Za-z0-9_-]{20,}'
+    'gitlab-ci-job-token'           = 'glcbt-[A-Za-z0-9_-]{20,}'
+    # --- AI providers ---
+    'openai-api-key'                = 'sk-[A-Za-z0-9]{20,}'
+    'openai-project-key'            = 'sk-proj-[A-Za-z0-9_-]{20,}'
+    'anthropic-api-key'             = 'sk-ant-[A-Za-z0-9_-]{20,}'
+    'huggingface-token'             = 'hf_[A-Za-z0-9]{30,}'
+    'groq-api-key'                  = 'gsk_[A-Za-z0-9]{20,}'
+    'replicate-api-token'           = 'r8_[A-Za-z0-9]{20,}'
+    # --- cloud / infra ---
+    'aws-access-key-id'             = 'AKIA[0-9A-Z]{16}'
+    'digitalocean-pat'              = 'dop_v1_[a-f0-9]{64}'
+    'docker-hub-pat'                = 'dckr_pat_[A-Za-z0-9_-]{20,}'
+    'supabase-pat'                  = 'sbp_[a-f0-9]{40}'
+    'planetscale-token'             = 'pscale_(?:tkn|pw)_[A-Za-z0-9_-]{20,}'
+    'neon-api-key'                  = 'napi_[a-z0-9]{20,}'
+    'doppler-token'                 = 'dp\.st\.[A-Za-z0-9._-]{20,}'
+    # --- payments ---
+    'stripe-key'                    = '[sr]k_(?:live|test)_[A-Za-z0-9]{16,}'
+    'square-token'                  = 'sq0(?:atp|csp)-[A-Za-z0-9_-]{20,}'
+    # --- package registries ---
+    'npm-access-token'              = 'npm_[A-Za-z0-9]{36}'
+    'pypi-api-token'                = 'pypi-[A-Za-z0-9_-]{20,}'
+    # --- comms / webhooks ---
+    'slack-token'                   = 'xox[abpors]-[A-Za-z0-9-]{10,}'
+    'slack-webhook'                 = 'https://hooks\.slack\.com/services/T[A-Z0-9]{6,}/B[A-Z0-9]{6,}/[A-Za-z0-9]{16,}'
+    'discord-webhook'               = 'https://(?:canary\.|ptb\.)?discord(?:app)?\.com/api/webhooks/\d{17,20}/[A-Za-z0-9_-]{20,}'
+    'telegram-bot-token'            = '\d{8,10}:[A-Za-z0-9_-]{35}'
+    'sendgrid-api-key'              = 'SG\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}'
+    'twilio-api-key'                = 'SK[0-9a-fA-F]{32}'
+    # --- SaaS tools ---
+    'google-api-key'                = 'AIza[0-9A-Za-z_-]{35}'
+    'google-oauth-client-secret'    = 'GOCSPX-[A-Za-z0-9_-]{20,}'
+    'shopify-token'                 = 'shp(?:at|ca|pa|ss)_[a-f0-9]{32}'
+    'new-relic-api-key'             = 'NRAK-[A-Z0-9]{27}'
+    'okta-ssws-token'               = '(?i)SSWS\s+[A-Za-z0-9_-]{20,}'
+    'linear-api-key'                = 'lin_api_[A-Za-z0-9]{40}'
+    'notion-token'                  = 'ntn_[A-Za-z0-9]{20,}'
+    'figma-token'                   = 'figd_[A-Za-z0-9_-]{20,}'
+    'airtable-pat'                  = 'pat[A-Za-z0-9]{14}\.[0-9a-f]{64}'
+    'snyk-uat'                      = 'snyk_uat\.[A-Za-z0-9._-]{20,}'
 }
 
 $allowlist = @()
