@@ -14,13 +14,13 @@ bootstrap/   Install-Workbench.ps1 — idempotent machine provisioning + checks
 shell/       PowerShell 7 profile, Git Bash .bashrc, shared aliases
 git/         .gitconfig, global .gitignore
 scripts/     Reusable gates: secret scan, pre-publish, CodeRabbit + Snyk wrappers,
-             Context7 state scrub, ASCII scan
+             Context7 state scrub, ASCII scan, vault secrets sync
 templates/   AGENTS.md, .coderabbit.yaml, Python/Docker/CI/dependabot/snyk starters,
              .gitattributes/.editorconfig/pre-commit/renovate starters
 tests/       Pester 5 suite (runs in CI on windows-latest)
 docs/        Runbooks + policies: new-machine, restore-after-wipe, secrets,
              coderabbit, snyk, pre-publish gate, context7 state scrub,
-             openbao cutover
+             openbao cutover, secrets inventory
 ```
 
 ## Quickstart (new machine)
@@ -171,6 +171,26 @@ pwsh -File scripts\Invoke-AsciiScan.ps1
 pwsh -File scripts\Invoke-AsciiScan.ps1 -Path src, scripts -Extensions ts, ps1
 ```
 
+### scripts/Sync-Secrets.ps1
+
+Sync secrets from OpenBao/Vault into Windows user-level environment
+variables, driven by `scripts/sync-secrets.map.json` — an inventory of env
+var NAMES → vault kv paths + keys, never values. `-Check` reports
+SET/MISSING per entry plus vault reachability and always exits 0. Apply
+mode is idempotent (in-sync entries untouched), supports `-WhatIf`, and
+degrades gracefully (warning + exit 0) when `VAULT_ADDR`/`VAULT_TOKEN` are
+missing or the vault is unreachable; exit 1 means at least one entry
+actually failed to apply (failures are isolated per entry). Prefers the
+`bao`/`vault` CLI, falls back to plain kv-v2 REST. Values flow vault →
+env var only — never printed, logged, or persisted. Full model:
+docs/secrets-inventory.md.
+
+```powershell
+pwsh -File scripts\Sync-Secrets.ps1 -Check
+pwsh -File scripts\Sync-Secrets.ps1            # apply: pull + set user env vars
+pwsh -File scripts\Sync-Secrets.ps1 -WhatIf
+```
+
 ## Quick reference
 
 | Tool | Path | Purpose | Key flags |
@@ -182,6 +202,7 @@ pwsh -File scripts\Invoke-AsciiScan.ps1 -Path src, scripts -Extensions ts, ps1
 | Snyk scan | `scripts/Invoke-SnykScan.ps1` | deps + SAST + container vulns, fail-closed | `-SeverityThreshold`, `-SkipCode`, `-SkipContainer` |
 | Context7 state scrub | `scripts/Invoke-Context7StateScrub.ps1` | Audit/Scrub ctx7sk keys in Codex state; fingerprints only | `-Mode`, `-CodexHome`, `-CloseAndRelaunchCodex` |
 | ASCII scan | `scripts/Invoke-AsciiScan.ps1` | Standalone gate: exit 1 on non-ASCII in source files | `-Path`, `-Extensions` |
+| Secrets sync | `scripts/Sync-Secrets.ps1` | Vault → user env var sync from a values-free map | `-Check`, `-WhatIf`, `-MapPath` |
 
 ## Adopting workbench in a new project
 
@@ -210,7 +231,9 @@ pwsh -File scripts\Invoke-AsciiScan.ps1 -Path src, scripts -Extensions ts, ps1
    repo secret + `templates/github/snyk.yml`), then gate with
    `Invoke-SnykScan.ps1`. The token never goes in any file. See docs/snyk.md.
 5. **Keep secrets out**: env var names only in tracked files; values in
-   user-level env vars or untracked local files. See docs/secrets-policy.md.
+   user-level env vars or untracked local files — or in the vault, synced
+   by `Sync-Secrets.ps1` (docs/secrets-inventory.md). See
+   docs/secrets-policy.md.
 
 ## Rules
 

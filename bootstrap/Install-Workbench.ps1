@@ -134,6 +134,15 @@ if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable('SNYK_TOK
     Add-Result 'env:SNYK_TOKEN' 'MANUAL' 'set as user-level env var only; see docs/snyk.md'
 } else { Add-Result 'env:SNYK_TOKEN' 'PASS' 'user-level env var present' }
 
+# --- VAULT_ADDR: local-only vault address for the secrets layer; CHECK only ---
+# The real address must never be committed, so bootstrap never sets it —
+# it only reports. Once set, scripts/Sync-Secrets.ps1 pulls the inventory
+# (docs/secrets-inventory.md).
+if ([string]::IsNullOrWhiteSpace($env:VAULT_ADDR) -and
+    [string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable('VAULT_ADDR', 'User'))) {
+    Add-Result 'env:VAULT_ADDR' 'MANUAL' 'set to your OpenBao/Vault address (local-only), then run scripts/Sync-Secrets.ps1; see docs/secrets-inventory.md'
+} else { Add-Result 'env:VAULT_ADDR' 'PASS' 'vault address configured (process or user env)' }
+
 # --- Shell profiles + git config (copy if different; back up existing once) ---
 $workbenchRoot = Split-Path -Parent $PSScriptRoot
 $profileTargets = @(

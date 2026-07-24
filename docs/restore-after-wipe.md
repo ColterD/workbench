@@ -9,6 +9,7 @@ doing real work.
 - [ ] Git Bash loads `~/.bashrc` (aliases `gs`, `gl` work)
 - [ ] `uv --version` works
 - [ ] `snyk --version` works and `$env:SNYK_TOKEN` resolves (if using scan gates)
+- [ ] `$env:VAULT_ADDR` resolves and `Sync-Secrets.ps1 -Check` reports the inventory SET + vault reachable (if using the vault secrets layer)
 - [ ] `wsl -l -q` lists `Debian`; `wsl -d Debian -- git --version` works
 - [ ] Docker Desktop is running and `docker version` shows both client and server
 - [ ] pwsh: `Get-Module -ListAvailable Pester` returns a version

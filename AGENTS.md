@@ -17,14 +17,15 @@ overrides.
 |-- shell/       # PowerShell 7 profile, Git Bash .bashrc
 |-- git/         # .gitconfig, .gitignore-global (installed to ~ by bootstrap)
 |-- scripts/     # Gates: secret scan, pre-publish, CodeRabbit + Snyk wrappers,
-|                # Context7 state scrub, ASCII scan (standalone)
+|                # Context7 state scrub, ASCII scan (standalone),
+|                # Sync-Secrets.ps1 + sync-secrets.map.json (vault secrets layer)
 |-- templates/   # AGENTS.md, Dockerfile.python-uv, .coderabbit.yaml, CI/dependabot/snyk,
 |                # .gitattributes/.editorconfig/pre-commit/renovate starters
 |-- tests/       # Pester 5 suite (scanner, gate step-selection, bootstrap -NoInstall,
 |                # Context7 state scrub)
 |-- docs/        # Runbooks + policies: new-machine, restore-after-wipe,
-|                # secrets-policy, coderabbit, snyk, pre-publish-gate,
-|                # context7-state-scrub, openbao-cutover
+|                # secrets-policy, secrets-inventory, coderabbit, snyk,
+|                # pre-publish-gate, context7-state-scrub, openbao-cutover
 |-- .secret-scan-allow  # Allowlist example (synthetic entries only)
 `-- AGENTS.md
 ```
@@ -35,6 +36,7 @@ overrides.
 | --- | --- | --- |
 | Machine provisioning | `bootstrap/Install-Workbench.ps1` | Ends with pass/fix/manual/fail checklist; exit 1 on any FAIL. `-NoInstall` is check-only and never writes state. |
 | Secret scanning | `scripts/Invoke-SecretScan.ps1` | Named regex patterns + `.secret-scan-allow` literal allowlist (`#` comments ok). `-Staged` scans index blobs for pre-commit. |
+| Vault secrets sync | `scripts/Sync-Secrets.ps1` + `scripts/sync-secrets.map.json` | Sync vault→user env vars; map holds names/paths only, values never. `VAULT_ADDR`/`VAULT_TOKEN` local-only: `docs/secrets-inventory.md`. |
 | Pre-publish gate | `scripts/Invoke-PrePublishGate.ps1` | secret scan → ruff+pytest via `uv run --with` → docker build. Opt-ins: `-WithSnyk`, `-WithCodeRabbit`. Order rationale: `docs/pre-publish-gate.md`. |
 | CodeRabbit reviews | `scripts/Invoke-CodeRabbitReview.ps1` | Thin wrapper; NEVER reimplement runner logic here. Flow + exit codes 0/2/3/4: `docs/coderabbit.md`. |
 | Snyk scanning | `scripts/Invoke-SnykScan.ps1` | deps + SAST + container from project layout; exit 0/1/2 fail-closed. `SNYK_TOKEN` user env var ONLY: `docs/snyk.md`. |
