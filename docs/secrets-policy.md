@@ -81,8 +81,16 @@ synthetic fixture, public identifier):
 
 ## Where secrets legitimately live
 
+The canonical value store is the owner's OpenBao/Vault instance; user-level
+env vars are synced FROM it by `scripts/Sync-Secrets.ps1` using the
+values-free inventory in `scripts/sync-secrets.map.json`. Going forward,
+new secrets go vault-first. See docs/secrets-inventory.md. The env var
+forms below remain the working copies scripts read, and the local-only
+fallbacks for anything not in the vault.
+
 | Kind | Location |
 | --- | --- |
+| Syncable secrets (canonical) | OpenBao/Vault kv; pulled to user env vars by `scripts/Sync-Secrets.ps1` (`VAULT_ADDR`/`VAULT_TOKEN` stay local-only) |
 | API tokens (Snyk, GitHub, etc.) | User-level env vars (`[Environment]::SetEnvironmentVariable(..., 'User')`) |
 | Shell-specific overrides | `$PROFILE.local.ps1`, `~/.bashrc.local` |
 | Per-project secrets | `.env` in the project root (gitignored globally) |
